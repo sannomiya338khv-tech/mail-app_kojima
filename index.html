@@ -5,10 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>メールテンプレート管理 (Cloud)</title>
   
+  <!-- iPhoneアプリ化（PWA）用の設定 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Mail Cloud">
   
+  <!-- iOS用アイコン自動生成スクリプト -->
   <script>
     (function(){
       var c = document.createElement('canvas');
@@ -73,6 +75,7 @@
     const Smartphone = (p) => <Icon {...p} path={<g><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></g>} />;
     const Settings = (p) => <Icon {...p} path={<g><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/><circle cx="12" cy="12" r="3"/></g>} />;
     const ChevronDown = (p) => <Icon {...p} path={<polyline points="6 9 12 15 18 9"/>} />;
+    const AlertTriangle = (p) => <Icon {...p} path={<g><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></g>} />;
     const Users = (p) => <Icon {...p} path={<g><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g>} />;
     const Mail = (p) => <Icon {...p} path={<g><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></g>} />;
     const Building = (p) => <Icon {...p} path={<g><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></g>} />;
@@ -116,6 +119,7 @@
       }
     ];
 
+    // --- 業者管理コンポーネント ---
     function AgencyManager({ agencies, onAdd, onDelete, onUpdate, showNotification }) {
       const [formData, setFormData] = useState({ company: '', name: '', email: '', group: '一般' });
       const handleSubmit = (e) => {
@@ -150,35 +154,70 @@
       );
     }
 
+    // --- メインアプリ ---
     function App() {
-      const [db, setDb] = useState(null); const [user, setUser] = useState(null);
-      const [configInput, setConfigInput] = useState(""); const [isConfigured, setIsConfigured] = useState(() => !!localStorage.getItem("firebase_config"));
-      const [appError, setAppError] = useState(null); const [templates, setTemplates] = useState([]); const [agencies, setAgencies] = useState([]);
-      const [settings, setSettings] = useState({ mediaList: ['すまいステップ', 'リビンマッチ'], companyName: '', staffName: '', mobilePhone: '', officePhone: '' });
-      const [activeCategory, setActiveCategory] = useState('satei_initial'); const [currentView, setCurrentView] = useState('templates');
-      const [searchQuery, setSearchQuery] = useState(''); const [editingTemplate, setEditingTemplate] = useState(null);
-      const [notification, setNotification] = useState(null); const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-      const [copyModal, setCopyModal] = useState(null); const [modalInputs, setModalInputs] = useState({}); const [newMediaInput, setNewMediaInput] = useState('');
+      const [db, setDb] = useState(null); 
+      const [user, setUser] = useState(null);
+      const [configInput, setConfigInput] = useState(""); 
+      const [isConfigured, setIsConfigured] = useState(() => !!localStorage.getItem("firebase_config"));
+      const [appError, setAppError] = useState(null); 
+      const [templates, setTemplates] = useState([]); 
+      const [agencies, setAgencies] = useState([]);
+      
+      // ★基本設定は「各端末ごと（ローカル）」に保存する
+      const [settings, setSettings] = useState(() => {
+        const savedSettings = localStorage.getItem("mail_app_local_settings");
+        return savedSettings ? JSON.parse(savedSettings) : { mediaList: ['すまいステップ', 'リビンマッチ'], companyName: '株式会社〇〇', staffName: '山田 太郎', mobilePhone: '090-0000-0000', officePhone: '03-0000-0000' };
+      });
+
+      useEffect(() => {
+        localStorage.setItem("mail_app_local_settings", JSON.stringify(settings));
+      }, [settings]);
+
+      const [activeCategory, setActiveCategory] = useState('satei_initial'); 
+      const [currentView, setCurrentView] = useState('templates');
+      const [searchQuery, setSearchQuery] = useState(''); 
+      const [editingTemplate, setEditingTemplate] = useState(null);
+      const [notification, setNotification] = useState(null); 
+      const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+      const [copyModal, setCopyModal] = useState(null); 
+      const [modalInputs, setModalInputs] = useState({}); 
+      const [newMediaInput, setNewMediaInput] = useState('');
       const appId = "mail-template-app";
+
+      // ★追加：Firebaseの設定をリセットして黒い画面に戻す
+      const resetFirebaseConfig = () => {
+        if (confirm("Firebaseの設定をリセットして、入力画面に戻りますか？\n（現在のデータベースとの接続が切れます）")) {
+          localStorage.removeItem("firebase_config");
+          window.location.reload();
+        }
+      };
 
       useEffect(() => {
         const savedConfig = localStorage.getItem("firebase_config");
         if (savedConfig) {
           try {
-            const config = JSON.parse(savedConfig); if (!firebase.apps.length) firebase.initializeApp(config);
-            const _db = firebase.firestore(); setDb(_db);
+            const config = JSON.parse(savedConfig); 
+            if (!firebase.apps.length) firebase.initializeApp(config);
+            const _db = firebase.firestore(); 
+            setDb(_db);
             firebase.auth().signInAnonymously().catch(e => setAppError("ログインエラー\n" + e.message));
             return firebase.auth().onAuthStateChanged((u) => setUser(u));
-          } catch (e) { localStorage.removeItem("firebase_config"); setIsConfigured(false); }
+          } catch (e) { 
+            localStorage.removeItem("firebase_config"); 
+            setIsConfigured(false); 
+          }
         }
       }, [isConfigured]);
 
       useEffect(() => {
         if (!db || !user) return;
+        // テンプレートの同期
         const unsubT = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('templates').onSnapshot(s => setTemplates(s.docs.map(d => ({id: d.id, ...d.data()}))));
+        // 業者リストの同期
         const unsubA = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').onSnapshot(s => setAgencies(s.docs.map(d => ({id: d.id, ...d.data()}))));
-        const unsubS = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('global').onSnapshot(doc => { if (doc.exists) setSettings(doc.data()); else db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('global').set(settings); });
-        return () => { unsubT(); unsubA(); unsubS(); };
+        
+        return () => { unsubT(); unsubA(); };
       }, [db, user]);
 
       const handleConfigSubmit = () => {
@@ -189,40 +228,49 @@
           const appIdVal = configStr.match(/appId["'\s:=]+([^"',\s}]+)/i);
           if (!apiKey || !projectId || !appIdVal) throw new Error("設定形式が正しくありません。");
           const config = { apiKey: apiKey[1], authDomain: projectId[1]+".firebaseapp.com", projectId: projectId[1], storageBucket: projectId[1]+".appspot.com", messagingSenderId: "", appId: appIdVal[1] };
-          localStorage.setItem("firebase_config", JSON.stringify(config)); setIsConfigured(true);
+          localStorage.setItem("firebase_config", JSON.stringify(config)); 
+          setIsConfigured(true);
         } catch (e) { alert(e.message); }
       };
 
       const saveToCloud = async (t) => {
         const id = t.id || crypto.randomUUID();
         await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('templates').doc(id.toString()).set({ ...t, id });
-        setEditingTemplate(null); showNotification("保存しました");
+        setEditingTemplate(null); 
+        showNotification("保存しました");
       };
+      
       const deleteFromCloud = async (id) => { if (confirm("削除しますか？")) await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('templates').doc(id.toString()).delete(); };
       const saveAgencyToCloud = async (a) => { const id = a.id || crypto.randomUUID(); await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).set({ ...a, id }); showNotification("業者を追加しました"); };
       const deleteAgencyFromCloud = async (id) => { if (confirm("削除しますか？")) await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).delete(); };
       const updateAgencyInCloud = async (id, data) => { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).update(data); showNotification("更新しました"); };
-      const updateSettings = async (s) => { setSettings(s); if (db && user) await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('global').set(s); };
+      
+      const updateSettings = (s) => { setSettings(s); };
+
       const showNotification = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
       const executeCopy = (text, label) => { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showNotification(`${label}をコピーしました`); };
+      
       const handleCopyRequest = (text, label) => {
         const matches = text.match(/［.+?］/g); const filtered = matches ? matches.filter(m => !['［業者会社名］','［業者担当者名］'].includes(m)) : null;
         if (filtered && filtered.length > 0) { const unique = [...new Set(filtered)]; setModalInputs(Object.fromEntries(unique.map(ph => [ph, '']))); setCopyModal({ text, label, placeholders: unique }); }
         else executeCopy(text, label);
       };
+      
       const handleSendToAgency = (template, agency) => {
         let body = template.body.replace(/［業者会社名］/g, agency.company).replace(/［業者担当者名］/g, agency.name || 'ご担当者');
         let subject = template.subject.replace(/［業者会社名］/g, agency.company).replace(/［業者担当者名］/g, agency.name || 'ご担当者');
         const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(agency.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        window.open(url, '_blank'); showNotification("Gmailを開きました");
+        window.open(url, '_blank'); 
+        showNotification("Gmailを開きました");
       };
 
       if (!isConfigured) return (
         <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6 text-center">
           <div className="max-w-md w-full bg-slate-800 p-8 rounded-2xl shadow-2xl">
             <h2 className="text-2xl font-bold mb-4 text-orange-500">Firebase設定</h2>
+            <p className="text-xs text-slate-400 mb-4">使用するプロジェクトの「const firebaseConfig = {`{ ... }`};」を貼り付けてください</p>
             <textarea className="w-full h-48 p-4 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs mb-4 outline-none focus:ring-2 focus:ring-orange-500" placeholder="firebaseConfig の中身を貼り付け" value={configInput} onChange={e => setConfigInput(e.target.value)} />
-            <button onClick={handleConfigSubmit} className="w-full bg-orange-600 py-3 rounded-lg font-bold">設定を保存して開始</button>
+            <button onClick={handleConfigSubmit} className="w-full bg-orange-600 py-3 rounded-lg font-bold shadow-lg">設定を保存して開始</button>
           </div>
         </div>
       );
@@ -231,6 +279,7 @@
         <div className="min-h-[100dvh] bg-gray-50 flex flex-col md:flex-row relative">
           {appError && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"><div className="bg-white rounded-xl p-6 max-w-lg w-full text-red-600 font-bold"><pre className="text-sm whitespace-pre-wrap">{appError}</pre><button onClick={() => setAppError(null)} className="mt-4 w-full bg-slate-800 text-white py-2 rounded">閉じる</button></div></div>}
           {isMobileMenuOpen && <div className="fixed inset-0 bg-slate-900/50 z-40 md:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />}
+          
           <aside className={`fixed pt-safe inset-y-0 left-0 z-50 w-72 bg-slate-800 text-white flex flex-col transform md:relative md:translate-x-0 md:w-64 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300`}>
             <div className="p-6 flex justify-between items-center"><h1 className="text-xl font-bold flex items-center gap-2 text-orange-400"><Send size={24} /> Mail Cloud</h1><button className="md:hidden" onClick={() => setIsMobileMenuOpen(false)}><X size={24} /></button></div>
             <nav className="px-2 pb-4 overflow-y-auto flex-1 custom-scrollbar">{CATEGORY_GROUPS.map(group => (
@@ -239,8 +288,13 @@
                       <button key={cat.id} onClick={() => { setCurrentView('templates'); setActiveCategory(cat.id); setEditingTemplate(null); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors ${currentView === 'templates' && activeCategory === cat.id ? 'bg-orange-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-700'}`}>{cat.icon}{cat.name}</button>))}</div></div>))}
               <div className="mt-4 border-t border-slate-700 pt-4 px-2"><button onClick={() => { setCurrentView('agencies'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-colors ${currentView === 'agencies' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-700'}`}><Users size={18} /> 🏢 業者アドレス帳</button></div>
             </nav>
-            <div className="p-4 border-t border-slate-700 pb-safe"><button onClick={() => { setCurrentView('templates'); setEditingTemplate({ title: '', category: activeCategory==='all'?'satei_initial':activeCategory, subject: '', body: '' }); setIsMobileMenuOpen(false); }} className="w-full bg-emerald-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 font-bold shadow-md"><Plus size={18} /> 新規作成</button></div>
+            <div className="p-4 border-t border-slate-700 pb-safe">
+              <button onClick={() => { setCurrentView('templates'); setEditingTemplate({ title: '', category: activeCategory==='all'?'satei_initial':activeCategory, subject: '', body: '' }); setIsMobileMenuOpen(false); }} className="w-full bg-emerald-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 font-bold shadow-md mb-4"><Plus size={18} /> 新規作成</button>
+              {/* 設定リセットボタン */}
+              <button onClick={resetFirebaseConfig} className="w-full text-[10px] text-slate-500 hover:text-white flex items-center justify-center gap-1 opacity-50 hover:opacity-100 transition-opacity"><RotateCcw size={10}/> 接続設定をリセット</button>
+            </div>
           </aside>
+          
           <main className="flex-1 h-[100dvh] overflow-hidden flex flex-col pt-safe">
             <header className="bg-white border-b p-4 shadow-sm z-10 sticky top-0 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div className="flex items-center gap-3"><button className="md:hidden p-2 text-gray-600" onClick={() => setIsMobileMenuOpen(true)}><Menu size={24} /></button><h2 className="text-lg font-bold text-gray-800">{currentView === 'agencies' ? '🏢 業者アドレス帳' : (ALL_CATEGORIES.find(c => c.id === activeCategory)?.name || 'すべて')}</h2></div>
@@ -248,7 +302,7 @@
             </header>
             <div className="flex-1 overflow-y-auto bg-gray-50 pb-safe px-4 md:px-6 py-4">
               {currentView === 'agencies' ? <AgencyManager agencies={agencies} onAdd={saveAgencyToCloud} onDelete={deleteAgencyFromCloud} onUpdate={updateAgencyInCloud} showNotification={showNotification} /> : (
-                <>{!editingTemplate && <div className="bg-white border rounded-xl shadow-sm mb-6 p-4 max-w-5xl mx-auto"><details className="group"><summary className="cursor-pointer font-bold text-gray-700 flex items-center justify-between outline-none"><span className="flex items-center gap-2"><Settings size={18} className="text-orange-500" /> 基本設定（クラウド同期）</span><ChevronDown className="group-open:rotate-180 transition-transform text-gray-400" size={18} /></summary>
+                <>{!editingTemplate && <div className="bg-white border rounded-xl shadow-sm mb-6 p-4 max-w-5xl mx-auto"><details className="group"><summary className="cursor-pointer font-bold text-gray-700 flex items-center justify-between outline-none"><span className="flex items-center gap-2"><Settings size={18} className="text-orange-500" /> 基本設定（端末ごとに保存）</span><ChevronDown className="group-open:rotate-180 transition-transform text-gray-400" size={18} /></summary>
                         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pb-2">{[['自社名', 'companyName'], ['担当者', 'staffName'], ['携帯', 'mobilePhone'], ['事務所', 'officePhone']].map(([label, key]) => (
                             <div key={key}><label className="block text-[10px] font-bold text-gray-400 mb-1">{label}</label><input type="text" value={settings[key]} onChange={e => updateSettings({...settings, [key]: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-orange-500" /></div>))}</div></details></div>}
                   <div className="max-w-5xl mx-auto">{editingTemplate ? <Editor template={editingTemplate} onSave={saveToCloud} onCancel={() => setEditingTemplate(null)} categories={CATEGORY_GROUPS} /> : 
