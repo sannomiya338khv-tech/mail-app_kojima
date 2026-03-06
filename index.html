@@ -159,18 +159,22 @@
       const [db, setDb] = useState(null); 
       const [user, setUser] = useState(null);
       const [configInput, setConfigInput] = useState(""); 
-      const [isConfigured, setIsConfigured] = useState(() => !!localStorage.getItem("firebase_config"));
+      
+      // ★修正箇所1：保存キーを小島さん専用に変更
+      const [isConfigured, setIsConfigured] = useState(() => !!localStorage.getItem("firebase_config_kojima"));
+      
       const [appError, setAppError] = useState(null); 
       const [templates, setTemplates] = useState([]); 
       const [agencies, setAgencies] = useState([]);
       
+      // ★修正箇所2：基本設定の保存キーも小島さん専用に変更
       const [settings, setSettings] = useState(() => {
-        const savedSettings = localStorage.getItem("mail_app_local_settings");
+        const savedSettings = localStorage.getItem("mail_app_local_settings_kojima");
         return savedSettings ? JSON.parse(savedSettings) : { mediaList: ['すまいステップ', 'リビンマッチ'], companyName: '株式会社〇〇', staffName: '山田 太郎', mobilePhone: '090-0000-0000', officePhone: '03-0000-0000' };
       });
 
       useEffect(() => {
-        localStorage.setItem("mail_app_local_settings", JSON.stringify(settings));
+        localStorage.setItem("mail_app_local_settings_kojima", JSON.stringify(settings));
       }, [settings]);
 
       const [activeCategory, setActiveCategory] = useState('satei_initial'); 
@@ -182,18 +186,21 @@
       const [copyModal, setCopyModal] = useState(null); 
       const [modalInputs, setModalInputs] = useState({}); 
       const [newMediaInput, setNewMediaInput] = useState('');
-      const appId = "mail-template-app";
+      
+      // ★修正箇所3：念のためAppIDも分ける
+      const appId = "mail-template-app-kojima";
 
-      // ★ここがリセット機能です
+      // ★修正箇所4：リセット機能も小島さん専用キーを消すように変更
       const resetFirebaseConfig = () => {
         if (confirm("Firebaseの設定をリセットして、初期の黒い画面に戻りますか？\n（現在のデータベースとの接続が解除されます）")) {
-          localStorage.removeItem("firebase_config");
+          localStorage.removeItem("firebase_config_kojima");
           window.location.reload();
         }
       };
 
       useEffect(() => {
-        const savedConfig = localStorage.getItem("firebase_config");
+        // ★修正箇所5：キーを変更
+        const savedConfig = localStorage.getItem("firebase_config_kojima");
         if (savedConfig) {
           try {
             const config = JSON.parse(savedConfig); 
@@ -203,7 +210,7 @@
             firebase.auth().signInAnonymously().catch(e => setAppError("ログインエラー\n" + e.message));
             return firebase.auth().onAuthStateChanged((u) => setUser(u));
           } catch (e) { 
-            localStorage.removeItem("firebase_config"); 
+            localStorage.removeItem("firebase_config_kojima"); 
             setIsConfigured(false); 
           }
         }
@@ -224,7 +231,9 @@
           const appIdVal = configStr.match(/appId["'\s:=]+([^"',\s}]+)/i);
           if (!apiKey || !projectId || !appIdVal) throw new Error("設定形式が正しくありません。");
           const config = { apiKey: apiKey[1], authDomain: projectId[1]+".firebaseapp.com", projectId: projectId[1], storageBucket: projectId[1]+".appspot.com", messagingSenderId: "", appId: appIdVal[1] };
-          localStorage.setItem("firebase_config", JSON.stringify(config)); 
+          
+          // ★修正箇所6：キーを変更
+          localStorage.setItem("firebase_config_kojima", JSON.stringify(config)); 
           setIsConfigured(true);
         } catch (e) { alert(e.message); }
       };
@@ -264,7 +273,7 @@
         <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6 text-center">
           <div className="max-w-md w-full bg-slate-800 p-8 rounded-2xl shadow-2xl">
             <h2 className="text-2xl font-bold mb-4 text-orange-500">Firebase設定</h2>
-            <p className="text-xs text-slate-400 mb-4">使用するプロジェクトの「const firebaseConfig = {`{ ... }`};」を貼り付けてください</p>
+            <p className="text-xs text-slate-400 mb-4">小島さん専用のプロジェクト（mail-app-kojima）の「const firebaseConfig = {`{ ... }`};」を貼り付けてください</p>
             <textarea className="w-full h-48 p-4 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs mb-4 outline-none focus:ring-2 focus:ring-orange-500" placeholder="firebaseConfig の中身を貼り付け" value={configInput} onChange={e => setConfigInput(e.target.value)} />
             <button onClick={handleConfigSubmit} className="w-full bg-orange-600 py-3 rounded-lg font-bold shadow-lg">設定を保存して開始</button>
           </div>
@@ -287,7 +296,6 @@
             <div className="p-4 border-t border-slate-700 pb-safe">
               <button onClick={() => { setCurrentView('templates'); setEditingTemplate({ title: '', category: activeCategory==='all'?'satei_initial':activeCategory, subject: '', body: '' }); setIsMobileMenuOpen(false); }} className="w-full bg-emerald-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 font-bold shadow-md mb-4"><Plus size={18} /> 新規作成</button>
               
-              {/* ▼ サイドバーのリセットボタン ▼ */}
               <button onClick={resetFirebaseConfig} className="w-full text-[10px] text-slate-500 hover:text-red-400 flex items-center justify-center gap-1 transition-colors"><RotateCcw size={10}/> 接続設定をリセット</button>
             </div>
           </aside>
@@ -303,7 +311,6 @@
                         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pb-2">{[['自社名', 'companyName'], ['担当者', 'staffName'], ['携帯', 'mobilePhone'], ['事務所', 'officePhone']].map(([label, key]) => (
                             <div key={key}><label className="block text-[10px] font-bold text-gray-400 mb-1">{label}</label><input type="text" value={settings[key]} onChange={e => updateSettings({...settings, [key]: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-orange-500" /></div>))}
                             
-                            {/* ▼ 追加：基本設定の中にも目立つリセットボタンを配置 ▼ */}
                             <div className="sm:col-span-2 md:col-span-4 border-t border-gray-100 pt-3 mt-2 flex justify-end">
                               <button onClick={resetFirebaseConfig} type="button" className="text-xs text-red-600 hover:text-red-800 font-bold flex items-center gap-1 bg-red-50 hover:bg-red-100 px-4 py-2 rounded transition-colors shadow-sm">
                                 <RotateCcw size={14}/> Firebase接続設定をリセットして初期化する
