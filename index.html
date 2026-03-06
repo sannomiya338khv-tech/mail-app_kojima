@@ -164,7 +164,6 @@
       const [templates, setTemplates] = useState([]); 
       const [agencies, setAgencies] = useState([]);
       
-      // ★基本設定は「各端末ごと（ローカル）」に保存する
       const [settings, setSettings] = useState(() => {
         const savedSettings = localStorage.getItem("mail_app_local_settings");
         return savedSettings ? JSON.parse(savedSettings) : { mediaList: ['すまいステップ', 'リビンマッチ'], companyName: '株式会社〇〇', staffName: '山田 太郎', mobilePhone: '090-0000-0000', officePhone: '03-0000-0000' };
@@ -185,9 +184,9 @@
       const [newMediaInput, setNewMediaInput] = useState('');
       const appId = "mail-template-app";
 
-      // ★追加：Firebaseの設定をリセットして黒い画面に戻す
+      // ★ここがリセット機能です
       const resetFirebaseConfig = () => {
-        if (confirm("Firebaseの設定をリセットして、入力画面に戻りますか？\n（現在のデータベースとの接続が切れます）")) {
+        if (confirm("Firebaseの設定をリセットして、初期の黒い画面に戻りますか？\n（現在のデータベースとの接続が解除されます）")) {
           localStorage.removeItem("firebase_config");
           window.location.reload();
         }
@@ -212,11 +211,8 @@
 
       useEffect(() => {
         if (!db || !user) return;
-        // テンプレートの同期
         const unsubT = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('templates').onSnapshot(s => setTemplates(s.docs.map(d => ({id: d.id, ...d.data()}))));
-        // 業者リストの同期
         const unsubA = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').onSnapshot(s => setAgencies(s.docs.map(d => ({id: d.id, ...d.data()}))));
-        
         return () => { unsubT(); unsubA(); };
       }, [db, user]);
 
@@ -290,8 +286,9 @@
             </nav>
             <div className="p-4 border-t border-slate-700 pb-safe">
               <button onClick={() => { setCurrentView('templates'); setEditingTemplate({ title: '', category: activeCategory==='all'?'satei_initial':activeCategory, subject: '', body: '' }); setIsMobileMenuOpen(false); }} className="w-full bg-emerald-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 font-bold shadow-md mb-4"><Plus size={18} /> 新規作成</button>
-              {/* 設定リセットボタン */}
-              <button onClick={resetFirebaseConfig} className="w-full text-[10px] text-slate-500 hover:text-white flex items-center justify-center gap-1 opacity-50 hover:opacity-100 transition-opacity"><RotateCcw size={10}/> 接続設定をリセット</button>
+              
+              {/* ▼ サイドバーのリセットボタン ▼ */}
+              <button onClick={resetFirebaseConfig} className="w-full text-[10px] text-slate-500 hover:text-red-400 flex items-center justify-center gap-1 transition-colors"><RotateCcw size={10}/> 接続設定をリセット</button>
             </div>
           </aside>
           
@@ -304,7 +301,16 @@
               {currentView === 'agencies' ? <AgencyManager agencies={agencies} onAdd={saveAgencyToCloud} onDelete={deleteAgencyFromCloud} onUpdate={updateAgencyInCloud} showNotification={showNotification} /> : (
                 <>{!editingTemplate && <div className="bg-white border rounded-xl shadow-sm mb-6 p-4 max-w-5xl mx-auto"><details className="group"><summary className="cursor-pointer font-bold text-gray-700 flex items-center justify-between outline-none"><span className="flex items-center gap-2"><Settings size={18} className="text-orange-500" /> 基本設定（端末ごとに保存）</span><ChevronDown className="group-open:rotate-180 transition-transform text-gray-400" size={18} /></summary>
                         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pb-2">{[['自社名', 'companyName'], ['担当者', 'staffName'], ['携帯', 'mobilePhone'], ['事務所', 'officePhone']].map(([label, key]) => (
-                            <div key={key}><label className="block text-[10px] font-bold text-gray-400 mb-1">{label}</label><input type="text" value={settings[key]} onChange={e => updateSettings({...settings, [key]: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-orange-500" /></div>))}</div></details></div>}
+                            <div key={key}><label className="block text-[10px] font-bold text-gray-400 mb-1">{label}</label><input type="text" value={settings[key]} onChange={e => updateSettings({...settings, [key]: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-orange-500" /></div>))}
+                            
+                            {/* ▼ 追加：基本設定の中にも目立つリセットボタンを配置 ▼ */}
+                            <div className="sm:col-span-2 md:col-span-4 border-t border-gray-100 pt-3 mt-2 flex justify-end">
+                              <button onClick={resetFirebaseConfig} type="button" className="text-xs text-red-600 hover:text-red-800 font-bold flex items-center gap-1 bg-red-50 hover:bg-red-100 px-4 py-2 rounded transition-colors shadow-sm">
+                                <RotateCcw size={14}/> Firebase接続設定をリセットして初期化する
+                              </button>
+                            </div>
+                            
+                        </div></details></div>}
                   <div className="max-w-5xl mx-auto">{editingTemplate ? <Editor template={editingTemplate} onSave={saveToCloud} onCancel={() => setEditingTemplate(null)} categories={CATEGORY_GROUPS} /> : 
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">{templates.filter(t => (activeCategory === 'all' || t.category === activeCategory) && (t.title.includes(searchQuery)||t.body.includes(searchQuery))).map(t => (
                           <TemplateCard key={t.id} template={{...t, subject: t.subject.replace(/［自社名］/g, settings.companyName).replace(/［担当者名］/g, settings.staffName).replace(/［携帯電話番号］/g, settings.mobilePhone).replace(/［事務所電話番号］/g, settings.officePhone), body: t.body.replace(/［自社名］/g, settings.companyName).replace(/［担当者名］/g, settings.staffName).replace(/［携帯電話番号］/g, settings.mobilePhone).replace(/［事務所電話番号］/g, settings.officePhone)}} originalTemplate={t} agencies={agencies} onSendToAgency={handleSendToAgency} onCopy={handleCopyRequest} onEdit={setEditingTemplate} onDelete={deleteFromCloud} getCategoryName={id => ALL_CATEGORIES.find(c => c.id === id)?.name} />))}</div>}</div></>)}
