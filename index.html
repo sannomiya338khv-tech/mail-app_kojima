@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>メールテンプレート管理 (Cloud)</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mail Cloud">
+  
+  <script>
+    (function(){
+      var c = document.createElement('canvas');
+      c.width = 256; c.height = 256;
+      var ctx = c.getContext('2d');
+      ctx.fillStyle = '#ea580c';
+      ctx.fillRect(0,0,256,256);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 16;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.strokeRect(48, 72, 160, 112);
+      ctx.beginPath(); ctx.moveTo(48, 72); ctx.lineTo(128, 136); ctx.lineTo(208, 72); ctx.stroke();
+      var link = document.createElement('link'); link.rel = 'apple-touch-icon'; link.href = c.toDataURL('image/png');
+      document.head.appendChild(link);
+      var icon = document.createElement('link'); icon.rel = 'icon'; icon.type = 'image/png'; icon.href = c.toDataURL('image/png');
+      document.head.appendChild(icon);
+    })();
+  </script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    body { -webkit-tap-highlight-color: transparent; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    .pt-safe { padding-top: env(safe-area-inset-top); }
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+    .animate-fade-in-up { animation: fadeInUp 0.3s ease-out; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const Icon = ({ path, size = 24, className = "" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
+    );
+    const Search = (p) => <Icon {...p} path={<g><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></g>} />;
+    const Copy = (p) => <Icon {...p} path={<g><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></g>} />;
+    const Plus = (p) => <Icon {...p} path={<g><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></g>} />;
+    const Edit2 = (p) => <Icon {...p} path={<g><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></g>} />;
+    const Trash2 = (p) => <Icon {...p} path={<g><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></g>} />;
+    const Check = (p) => <Icon {...p} path={<polyline points="20 6 9 17 4 12"/>} />;
+    const Send = (p) => <Icon {...p} path={<g><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></g>} />;
+    const Folder = (p) => <Icon {...p} path={<g><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></g>} />;
+    const MessageSquare = (p) => <Icon {...p} path={<g><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></g>} />;
+    const Clock = (p) => <Icon {...p} path={<g><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></g>} />;
+    const RotateCcw = (p) => <Icon {...p} path={<g><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></g>} />;
+    const Save = (p) => <Icon {...p} path={<g><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></g>} />;
+    const X = (p) => <Icon {...p} path={<g><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></g>} />;
+    const Menu = (p) => <Icon {...p} path={<g><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></g>} />;
+    const Smartphone = (p) => <Icon {...p} path={<g><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></g>} />;
+    const Settings = (p) => <Icon {...p} path={<g><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/><circle cx="12" cy="12" r="3"/></g>} />;
+    const ChevronDown = (p) => <Icon {...p} path={<polyline points="6 9 12 15 18 9"/>} />;
+    const Users = (p) => <Icon {...p} path={<g><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g>} />;
+    const Mail = (p) => <Icon {...p} path={<g><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></g>} />;
+    const Building = (p) => <Icon {...p} path={<g><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></g>} />;
+
+    const AGENCY_GROUPS = ['一般', 'マンション買取', '戸建買取', '土地買取', 'その他'];
+
+    const CATEGORY_GROUPS = [
+      { id: 'general', label: '', items: [{ id: 'all', name: 'すべて', icon: <Folder size={18} /> }] },
+      { id: 'standard', label: '通常対応', items: [
+        { id: 'initial', name: '初期対応', icon: <MessageSquare size={18} /> },
+        { id: 'followup', name: '追撃・検討伺い', icon: <Clock size={18} /> },
+        { id: 'reengage', name: '長期・掘り起こし', icon: <RotateCcw size={18} /> },
+      ]},
+      { id: 'satei', label: '一括査定対応用（Eメール）', items: [
+        { id: 'satei_initial', name: '初期対応（メール）', icon: <MessageSquare size={18} /> },
+        { id: 'satei_followup', name: '追客・追撃（メール）', icon: <Clock size={18} /> },
+        { id: 'satei_reengage', name: '長期・掘り起こし（メール）', icon: <RotateCcw size={18} /> },
+      ]},
+      { id: 'satei_sms', label: '一括査定対応用（SMS）', items: [
+        { id: 'satei_initial_sms', name: '初期対応（SMS）', icon: <Smartphone size={18} /> },
+        { id: 'satei_followup_sms', name: '追客・追撃（SMS）', icon: <Smartphone size={18} /> },
+        { id: 'satei_reengage_sms', name: '長期・掘り起こし（SMS）', icon: <Smartphone size={18} /> },
+      ]},
+      { id: 'agency', label: '業者対応用', items: [
+        { id: 'agency_template', name: '業者個別送信 (Gmail)', icon: <Building size={18} /> }
+      ]}
+    ];
+
+    const ALL_CATEGORIES = CATEGORY_GROUPS.flatMap(group => group.items);
+
+    const INITIAL_TEMPLATES = [
+      {
+        id: 1, title: '資料請求へのお礼（即レス用）', category: 'initial',
+        subject: '【資料送付のご案内】［自社名］ 担当の［担当者名］です',
+        body: `［お客様名］様\n\nお世話になっております。\n［自社名］の［担当者名］でございます。\n\n資料（PDF）をお送りいたします。`
+      },
+      {
+        id: 16, title: '【新着物件】物件確認・客付依頼', category: 'agency_template',
+        subject: '【新着物件のご案内】［自社名］',
+        body: `［業者会社名］\n［業者担当者名］ 様\n\nいつもお世話になっております。\n［自社名］の［担当者名］です。\n\n弊社にて新たな専任物件をお預かりいたしました。\n貴社のお客様へご紹介いただきたくご案内申し上げます。\n\n【物件概要】\n・所在地：［物件のエリア・種別］\n・価格：［価格］万円\n\nご不明点がございましたらお気軽にご連絡ください。`
+      }
+    ];
+
+    function AgencyManager({ agencies, onAdd, onDelete, onUpdate, showNotification }) {
+      const [formData, setFormData] = useState({ company: '', name: '', email: '', group: '一般' });
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!formData.company || !formData.email) return showNotification('会社名とアドレスは必須です');
+        onAdd(formData); setFormData({ company: '', name: '', email: '', group: '一般' });
+      };
+      return (
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800"><Plus size={20} className="text-purple-500"/> 新規業者登録</h2>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div className="sm:col-span-2"><label className="block text-[10px] font-bold text-gray-500 mb-1">グループ</label>
+              <select value={formData.group} onChange={e => setFormData({...formData, group: e.target.value})} className="w-full p-2 border rounded text-sm bg-white">{AGENCY_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}</select></div>
+              <div className="sm:col-span-3"><label className="block text-[10px] font-bold text-gray-500 mb-1">会社名</label><input required type="text" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} className="w-full p-2 border rounded text-sm" /></div>
+              <div className="sm:col-span-2"><label className="block text-[10px] font-bold text-gray-500 mb-1">担当者</label><input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-2 border rounded text-sm" /></div>
+              <div className="sm:col-span-3"><label className="block text-[10px] font-bold text-gray-500 mb-1">メール</label><input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full p-2 border rounded text-sm" /></div>
+              <div className="sm:col-span-2 flex items-end"><button type="submit" className="w-full bg-purple-600 text-white p-2 rounded font-bold transition-colors">登録</button></div>
+            </form>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="bg-gray-50 border-b p-4 font-bold flex justify-between text-gray-700"><span>登録済み業者一覧</span><span className="text-gray-500 text-sm">{agencies.length}件</span></div>
+            <div className="overflow-x-auto"><table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 border-b text-gray-500"><tr><th className="p-3 w-28">グループ</th><th className="p-3">会社名</th><th className="p-3">担当</th><th className="p-3">メール</th><th className="p-3 text-center">削除</th></tr></thead>
+                <tbody>{agencies.map(a => (<tr key={a.id} className="border-b hover:bg-gray-50">
+                      <td className="p-3"><select value={a.group || '一般'} onChange={(e) => onUpdate(a.id, { group: e.target.value })} className="text-[10px] bg-gray-100 p-1 rounded font-bold border cursor-pointer">{AGENCY_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}</select></td>
+                      <td className="p-3 font-medium text-gray-800">{a.company}</td><td className="p-3 text-gray-600">{a.name}</td><td className="p-3 text-blue-600">{a.email}</td>
+                      <td className="p-3 text-center"><button onClick={() => onDelete(a.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={16}/></button></td></tr>))}</tbody>
+            </table></div>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [db, setDb] = useState(null); const [user, setUser] = useState(null);
+      const [configInput, setConfigInput] = useState(""); const [isConfigured, setIsConfigured] = useState(() => !!localStorage.getItem("firebase_config"));
+      const [appError, setAppError] = useState(null); const [templates, setTemplates] = useState([]); const [agencies, setAgencies] = useState([]);
+      const [settings, setSettings] = useState({ mediaList: ['すまいステップ', 'リビンマッチ'], companyName: '', staffName: '', mobilePhone: '', officePhone: '' });
+      const [activeCategory, setActiveCategory] = useState('satei_initial'); const [currentView, setCurrentView] = useState('templates');
+      const [searchQuery, setSearchQuery] = useState(''); const [editingTemplate, setEditingTemplate] = useState(null);
+      const [notification, setNotification] = useState(null); const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+      const [copyModal, setCopyModal] = useState(null); const [modalInputs, setModalInputs] = useState({}); const [newMediaInput, setNewMediaInput] = useState('');
+      const appId = "mail-template-app";
+
+      useEffect(() => {
+        const savedConfig = localStorage.getItem("firebase_config");
+        if (savedConfig) {
+          try {
+            const config = JSON.parse(savedConfig); if (!firebase.apps.length) firebase.initializeApp(config);
+            const _db = firebase.firestore(); setDb(_db);
+            firebase.auth().signInAnonymously().catch(e => setAppError("ログインエラー\n" + e.message));
+            return firebase.auth().onAuthStateChanged((u) => setUser(u));
+          } catch (e) { localStorage.removeItem("firebase_config"); setIsConfigured(false); }
+        }
+      }, [isConfigured]);
+
+      useEffect(() => {
+        if (!db || !user) return;
+        const unsubT = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('templates').onSnapshot(s => setTemplates(s.docs.map(d => ({id: d.id, ...d.data()}))));
+        const unsubA = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').onSnapshot(s => setAgencies(s.docs.map(d => ({id: d.id, ...d.data()}))));
+        const unsubS = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('global').onSnapshot(doc => { if (doc.exists) setSettings(doc.data()); else db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('global').set(settings); });
+        return () => { unsubT(); unsubA(); unsubS(); };
+      }, [db, user]);
+
+      const handleConfigSubmit = () => {
+        try {
+          const configStr = configInput;
+          const apiKey = configStr.match(/apiKey["'\s:=]+([^"',\s}]+)/i);
+          const projectId = configStr.match(/projectId["'\s:=]+([^"',\s}]+)/i);
+          const appIdVal = configStr.match(/appId["'\s:=]+([^"',\s}]+)/i);
+          if (!apiKey || !projectId || !appIdVal) throw new Error("設定形式が正しくありません。");
+          const config = { apiKey: apiKey[1], authDomain: projectId[1]+".firebaseapp.com", projectId: projectId[1], storageBucket: projectId[1]+".appspot.com", messagingSenderId: "", appId: appIdVal[1] };
+          localStorage.setItem("firebase_config", JSON.stringify(config)); setIsConfigured(true);
+        } catch (e) { alert(e.message); }
+      };
+
+      const saveToCloud = async (t) => {
+        const id = t.id || crypto.randomUUID();
+        await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('templates').doc(id.toString()).set({ ...t, id });
+        setEditingTemplate(null); showNotification("保存しました");
+      };
+      const deleteFromCloud = async (id) => { if (confirm("削除しますか？")) await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('templates').doc(id.toString()).delete(); };
+      const saveAgencyToCloud = async (a) => { const id = a.id || crypto.randomUUID(); await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).set({ ...a, id }); showNotification("業者を追加しました"); };
+      const deleteAgencyFromCloud = async (id) => { if (confirm("削除しますか？")) await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).delete(); };
+      const updateAgencyInCloud = async (id, data) => { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).update(data); showNotification("更新しました"); };
+      const updateSettings = async (s) => { setSettings(s); if (db && user) await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('global').set(s); };
+      const showNotification = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
+      const executeCopy = (text, label) => { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showNotification(`${label}をコピーしました`); };
+      const handleCopyRequest = (text, label) => {
+        const matches = text.match(/［.+?］/g); const filtered = matches ? matches.filter(m => !['［業者会社名］','［業者担当者名］'].includes(m)) : null;
+        if (filtered && filtered.length > 0) { const unique = [...new Set(filtered)]; setModalInputs(Object.fromEntries(unique.map(ph => [ph, '']))); setCopyModal({ text, label, placeholders: unique }); }
+        else executeCopy(text, label);
+      };
+      const handleSendToAgency = (template, agency) => {
+        let body = template.body.replace(/［業者会社名］/g, agency.company).replace(/［業者担当者名］/g, agency.name || 'ご担当者');
+        let subject = template.subject.replace(/［業者会社名］/g, agency.company).replace(/［業者担当者名］/g, agency.name || 'ご担当者');
+        const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(agency.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.open(url, '_blank'); showNotification("Gmailを開きました");
+      };
+
+      if (!isConfigured) return (
+        <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6 text-center">
+          <div className="max-w-md w-full bg-slate-800 p-8 rounded-2xl shadow-2xl">
+            <h2 className="text-2xl font-bold mb-4 text-orange-500">Firebase設定</h2>
+            <textarea className="w-full h-48 p-4 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs mb-4 outline-none focus:ring-2 focus:ring-orange-500" placeholder="firebaseConfig の中身を貼り付け" value={configInput} onChange={e => setConfigInput(e.target.value)} />
+            <button onClick={handleConfigSubmit} className="w-full bg-orange-600 py-3 rounded-lg font-bold">設定を保存して開始</button>
+          </div>
+        </div>
+      );
+
+      return (
+        <div className="min-h-[100dvh] bg-gray-50 flex flex-col md:flex-row relative">
+          {appError && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"><div className="bg-white rounded-xl p-6 max-w-lg w-full text-red-600 font-bold"><pre className="text-sm whitespace-pre-wrap">{appError}</pre><button onClick={() => setAppError(null)} className="mt-4 w-full bg-slate-800 text-white py-2 rounded">閉じる</button></div></div>}
+          {isMobileMenuOpen && <div className="fixed inset-0 bg-slate-900/50 z-40 md:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />}
+          <aside className={`fixed pt-safe inset-y-0 left-0 z-50 w-72 bg-slate-800 text-white flex flex-col transform md:relative md:translate-x-0 md:w-64 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300`}>
+            <div className="p-6 flex justify-between items-center"><h1 className="text-xl font-bold flex items-center gap-2 text-orange-400"><Send size={24} /> Mail Cloud</h1><button className="md:hidden" onClick={() => setIsMobileMenuOpen(false)}><X size={24} /></button></div>
+            <nav className="px-2 pb-4 overflow-y-auto flex-1 custom-scrollbar">{CATEGORY_GROUPS.map(group => (
+                <div key={group.id} className="mb-6">{group.label && <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-2 px-4">{group.label}</h3>}
+                  <div className="space-y-1">{group.items.map(cat => (
+                      <button key={cat.id} onClick={() => { setCurrentView('templates'); setActiveCategory(cat.id); setEditingTemplate(null); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors ${currentView === 'templates' && activeCategory === cat.id ? 'bg-orange-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-700'}`}>{cat.icon}{cat.name}</button>))}</div></div>))}
+              <div className="mt-4 border-t border-slate-700 pt-4 px-2"><button onClick={() => { setCurrentView('agencies'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-colors ${currentView === 'agencies' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-700'}`}><Users size={18} /> 🏢 業者アドレス帳</button></div>
+            </nav>
+            <div className="p-4 border-t border-slate-700 pb-safe"><button onClick={() => { setCurrentView('templates'); setEditingTemplate({ title: '', category: activeCategory==='all'?'satei_initial':activeCategory, subject: '', body: '' }); setIsMobileMenuOpen(false); }} className="w-full bg-emerald-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 font-bold shadow-md"><Plus size={18} /> 新規作成</button></div>
+          </aside>
+          <main className="flex-1 h-[100dvh] overflow-hidden flex flex-col pt-safe">
+            <header className="bg-white border-b p-4 shadow-sm z-10 sticky top-0 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+              <div className="flex items-center gap-3"><button className="md:hidden p-2 text-gray-600" onClick={() => setIsMobileMenuOpen(true)}><Menu size={24} /></button><h2 className="text-lg font-bold text-gray-800">{currentView === 'agencies' ? '🏢 業者アドレス帳' : (ALL_CATEGORIES.find(c => c.id === activeCategory)?.name || 'すべて')}</h2></div>
+              {currentView === 'templates' && <div className="relative w-full sm:w-80"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} /><input type="text" placeholder="検索..." className="w-full pl-10 pr-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-orange-500" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></div>}
+            </header>
+            <div className="flex-1 overflow-y-auto bg-gray-50 pb-safe px-4 md:px-6 py-4">
+              {currentView === 'agencies' ? <AgencyManager agencies={agencies} onAdd={saveAgencyToCloud} onDelete={deleteAgencyFromCloud} onUpdate={updateAgencyInCloud} showNotification={showNotification} /> : (
+                <>{!editingTemplate && <div className="bg-white border rounded-xl shadow-sm mb-6 p-4 max-w-5xl mx-auto"><details className="group"><summary className="cursor-pointer font-bold text-gray-700 flex items-center justify-between outline-none"><span className="flex items-center gap-2"><Settings size={18} className="text-orange-500" /> 基本設定（クラウド同期）</span><ChevronDown className="group-open:rotate-180 transition-transform text-gray-400" size={18} /></summary>
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pb-2">{[['自社名', 'companyName'], ['担当者', 'staffName'], ['携帯', 'mobilePhone'], ['事務所', 'officePhone']].map(([label, key]) => (
+                            <div key={key}><label className="block text-[10px] font-bold text-gray-400 mb-1">{label}</label><input type="text" value={settings[key]} onChange={e => updateSettings({...settings, [key]: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-orange-500" /></div>))}</div></details></div>}
+                  <div className="max-w-5xl mx-auto">{editingTemplate ? <Editor template={editingTemplate} onSave={saveToCloud} onCancel={() => setEditingTemplate(null)} categories={CATEGORY_GROUPS} /> : 
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">{templates.filter(t => (activeCategory === 'all' || t.category === activeCategory) && (t.title.includes(searchQuery)||t.body.includes(searchQuery))).map(t => (
+                          <TemplateCard key={t.id} template={{...t, subject: t.subject.replace(/［自社名］/g, settings.companyName).replace(/［担当者名］/g, settings.staffName).replace(/［携帯電話番号］/g, settings.mobilePhone).replace(/［事務所電話番号］/g, settings.officePhone), body: t.body.replace(/［自社名］/g, settings.companyName).replace(/［担当者名］/g, settings.staffName).replace(/［携帯電話番号］/g, settings.mobilePhone).replace(/［事務所電話番号］/g, settings.officePhone)}} originalTemplate={t} agencies={agencies} onSendToAgency={handleSendToAgency} onCopy={handleCopyRequest} onEdit={setEditingTemplate} onDelete={deleteFromCloud} getCategoryName={id => ALL_CATEGORIES.find(c => c.id === id)?.name} />))}</div>}</div></>)}
+            </div>
+            {notification && <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-fade-in-up z-50"><Check size={16} className="text-green-400" />{notification}</div>}
+            {copyModal && <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in-up"><div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 flex flex-col max-h-[90vh]"><h3 className="text-lg font-bold mb-4 text-gray-800">未入力項目の設定</h3><div className="overflow-y-auto flex-1 space-y-4 pr-2 mb-4">{copyModal.placeholders.map((ph, idx) => (
+                      <div key={idx} className="bg-gray-50 p-4 rounded-lg border"><label className="block text-xs font-bold text-gray-500 mb-2">{ph}</label>{ph === '［媒体名］' ? (
+                          <div><div className="flex flex-wrap gap-2 mb-3">{settings.mediaList.map((m, i) => (<button key={i} onClick={() => setModalInputs({...modalInputs, [ph]: m})} className={`px-3 py-2 text-sm font-bold rounded-lg border ${modalInputs[ph]===m?'bg-orange-600 text-white border-orange-600 shadow-md':'bg-white text-orange-600 border-orange-200'}`}>{m}</button>))}</div>
+                            <div className="flex gap-2"><input type="text" value={newMediaInput} onChange={e => setNewMediaInput(e.target.value)} className="flex-1 p-2 border rounded text-sm outline-none" placeholder="媒体名を追加" /><button onClick={() => { if(!newMediaInput) return; updateSettings({...settings, mediaList: [...settings.mediaList, newMediaInput]}); setNewMediaInput(''); }} className="px-4 py-2 bg-slate-800 text-white rounded text-xs font-bold">追加</button></div></div>
+                        ) : (<input type="text" value={modalInputs[ph]} onChange={e => setModalInputs({...modalInputs, [ph]: e.target.value})} className="w-full p-2 border rounded outline-none text-sm focus:ring-1 focus:ring-orange-500" />)}</div>))}</div>
+                  <div className="flex justify-end gap-3 pt-4 border-t"><button onClick={() => setCopyModal(null)} className="px-5 py-2 text-gray-400 font-bold">中止</button><button onClick={() => { let res = copyModal.text; copyModal.placeholders.forEach(ph => { res = res.split(ph).join(modalInputs[ph] || ph); }); executeCopy(res, copyModal.label); setCopyModal(null); }} className="px-6 py-2 bg-orange-600 text-white rounded shadow-md flex items-center gap-2 font-bold"><Copy size={16} /> コピー実行</button></div></div></div>}
+          </main>
+        </div>
+      );
+    }
+
+    function TemplateCard({ template, originalTemplate, agencies, onSendToAgency, onCopy, onEdit, onDelete, getCategoryName }) {
+      const [isSendMode, setIsSendMode] = useState(false); const [expandedGroup, setExpandedGroup] = useState(null);
+      const groupedAgencies = AGENCY_GROUPS.map(gn => ({ name: gn, agencies: agencies.filter(a => (a.group || '一般') === gn) })).filter(g => g.agencies.length > 0);
+      return (
+        <div className="bg-white rounded-xl shadow-sm border hover:shadow-md transition-shadow flex flex-col h-full overflow-hidden">
+          <div className="p-4 border-b bg-gray-50/50 flex justify-between items-start">
+            <div><div className="flex items-center gap-2 mb-1"><span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${template.category === 'agency_template' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'}`}>{getCategoryName(template.category)}</span>
+                {template.category === 'agency_template' && <button onClick={() => setIsSendMode(!isSendMode)} className="text-white text-[10px] font-bold flex items-center gap-1 bg-purple-600 px-2 py-0.5 rounded shadow-sm hover:bg-purple-700 transition-colors"><Mail size={10} /> Gmailパネル</button>}</div><h3 className="font-bold text-gray-800 leading-tight">{template.title}</h3></div>
+            <div className="flex gap-1"><button onClick={() => onEdit(originalTemplate)} className="p-2 text-gray-400 hover:text-blue-600"><Edit2 size={18} /></button><button onClick={() => onDelete(template.id)} className="p-2 text-gray-400 hover:text-red-600"><Trash2 size={18} /></button></div>
+          </div>
+          {isSendMode && template.category === 'agency_template' && (<div className="bg-purple-50 p-3 border-b border-purple-100"><div className="flex justify-between items-center mb-2"><h4 className="text-xs font-bold text-purple-800 flex items-center gap-1"><Mail size={12}/> 送信先の業者を選択</h4><button onClick={() => setIsSendMode(false)} className="text-purple-400 hover:text-purple-700"><X size={16} /></button></div>
+              {agencies.length === 0 ? <p className="text-xs text-gray-500 py-2">※先に業者アドレス帳を登録してください。</p> : <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-1 pb-1">
+                  {groupedAgencies.map(group => (<div key={group.name} className="border border-purple-200 rounded bg-white overflow-hidden shadow-sm">
+                      <button onClick={() => setExpandedGroup(expandedGroup === group.name ? null : group.name)} className="w-full flex justify-between items-center p-2.5 bg-purple-50 hover:bg-purple-100 transition-colors">
+                        <span className="text-xs font-bold text-purple-800">{group.name} <span className="text-gray-500 font-normal ml-1">({group.agencies.length})</span></span><ChevronDown size={14} className={`text-purple-500 transition-transform ${expandedGroup === group.name ? 'rotate-180' : ''}`} /></button>
+                      {expandedGroup === group.name && <div className="p-1.5 space-y-1.5 bg-white border-t border-purple-100">{group.agencies.map(a => (
+                            <button key={a.id} onClick={() => onSendToAgency(template, a)} className="w-full text-left bg-white border border-gray-100 hover:border-purple-300 hover:bg-purple-50 p-2 rounded flex justify-between items-center transition-colors"><div className="flex flex-col overflow-hidden"><span className="text-xs font-bold text-gray-700 truncate">{a.company}</span><span className="text-[10px] text-gray-500 truncate">{a.name || '担当者名なし'}</span></div><span className="text-[10px] bg-purple-600 text-white px-2 py-1 rounded shadow-sm whitespace-nowrap flex items-center gap-1"><Send size={10} /> Gmail</span></button>))}</div>}</div>))}</div>}</div>)}
+          <div className="p-4 flex-1 space-y-4">
+            <div><div className="text-[10px] font-bold text-gray-400 mb-1 flex justify-between">件名<button onClick={() => onCopy(template.subject, '件名')} className="text-orange-600 font-bold flex items-center gap-1"><Copy size={10} />コピー</button></div><div className="bg-gray-50 p-2 rounded border text-sm text-gray-700 font-medium break-all">{template.subject || '(件名なし)'}</div></div>
+            <div><div className="text-[10px] font-bold text-gray-400 mb-1 flex justify-between">本文<button onClick={() => onCopy(template.body, '本文')} className="text-orange-600 font-bold flex items-center gap-1"><Copy size={10} />コピー</button></div><div className="bg-gray-50 p-3 rounded border text-sm text-gray-600 font-mono whitespace-pre-wrap h-40 overflow-y-auto custom-scrollbar">{template.body}</div></div>
+          </div>
+        </div>
+      );
+    }
+
+    function Editor({ template, onSave, onCancel, categories }) {
+      const [formData, setFormData] = useState({ ...template }); const bodyRef = useRef(null);
+      const insert = ph => { const s = bodyRef.current.selectionStart; const e = bodyRef.current.selectionEnd; const b = formData.body || ''; setFormData({...formData, body: b.substring(0, s) + ph + b.substring(e)}); setTimeout(() => { bodyRef.current.selectionStart = bodyRef.current.selectionEnd = s + ph.length; bodyRef.current.focus(); }, 0); };
+      return (
+        <div className="bg-white rounded-xl shadow-lg border overflow-hidden animate-fade-in-up">
+          <div className="bg-slate-800 text-white px-6 py-4 flex justify-between items-center"><h3 className="font-bold">{template.id?'編集':'新規作成'}</h3><button onClick={onCancel}><X size={24} /></button></div>
+          <form onSubmit={e => { e.preventDefault(); onSave(formData); }} className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div><label className="block text-xs font-bold text-gray-400 mb-1">タイトル</label><input type="text" className="w-full p-2 border rounded font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required /></div>
+              <div><label className="block text-xs font-bold text-gray-400 mb-1">カテゴリ</label><select className="w-full p-2 border rounded bg-white font-bold" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>{categories.map(g => g.id!=='general'&&<optgroup key={g.id} label={g.label}>{g.items.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</optgroup>)}</select></div>
+            </div>
+            <div><label className="block text-xs font-bold text-gray-400 mb-1">件名</label><input type="text" className="w-full p-2 border rounded font-bold" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} /></div>
+            <div><div className="flex flex-wrap gap-2 mb-2">{['［お客様名］', '［媒体名］', '［物件のエリア・種別］', '［自社名］', '［担当者名］', '［携帯電話番号］', '［事務所電話番号］', '［業者会社名］', '［業者担当者名］'].map(ph => (<button key={ph} type="button" onClick={() => insert(ph)} className={`text-[10px] bg-white border px-2 py-1 rounded shadow-sm font-bold ${ph.includes('業者') ? 'text-purple-600 border-purple-200' : 'text-blue-600 border-blue-200'}`}>{ph}</button>))}</div>
+              <textarea ref={bodyRef} className="w-full h-64 p-3 border rounded font-mono text-sm outline-none focus:ring-2 focus:ring-orange-500 custom-scrollbar" value={formData.body} onChange={e => setFormData({...formData, body: e.target.value})} required /></div>
+            <div className="flex justify-end gap-3"><button type="button" onClick={onCancel} className="px-5 py-2 text-gray-500 font-bold">中止</button><button type="submit" className="px-8 py-2 bg-orange-600 text-white rounded shadow-md font-bold">保存してクラウド同期</button></div>
+          </form>
+        </div>
+      );
+    }
+    const root = ReactDOM.createRoot(document.getElementById('root')); root.render(<App />);
+  </script>
+</body>
+</html>
