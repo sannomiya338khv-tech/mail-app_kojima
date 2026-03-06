@@ -160,14 +160,14 @@
       const [user, setUser] = useState(null);
       const [configInput, setConfigInput] = useState(""); 
       
-      // ★修正箇所1：保存キーを小島さん専用に変更
+      // ★小島さん専用の記憶の引き出し（キー）
       const [isConfigured, setIsConfigured] = useState(() => !!localStorage.getItem("firebase_config_kojima"));
       
       const [appError, setAppError] = useState(null); 
       const [templates, setTemplates] = useState([]); 
       const [agencies, setAgencies] = useState([]);
       
-      // ★修正箇所2：基本設定の保存キーも小島さん専用に変更
+      // ★基本設定も小島さん専用の引き出しに
       const [settings, setSettings] = useState(() => {
         const savedSettings = localStorage.getItem("mail_app_local_settings_kojima");
         return savedSettings ? JSON.parse(savedSettings) : { mediaList: ['すまいステップ', 'リビンマッチ'], companyName: '株式会社〇〇', staffName: '山田 太郎', mobilePhone: '090-0000-0000', officePhone: '03-0000-0000' };
@@ -187,10 +187,9 @@
       const [modalInputs, setModalInputs] = useState({}); 
       const [newMediaInput, setNewMediaInput] = useState('');
       
-      // ★修正箇所3：念のためAppIDも分ける
       const appId = "mail-template-app-kojima";
 
-      // ★修正箇所4：リセット機能も小島さん専用キーを消すように変更
+      // リセット機能
       const resetFirebaseConfig = () => {
         if (confirm("Firebaseの設定をリセットして、初期の黒い画面に戻りますか？\n（現在のデータベースとの接続が解除されます）")) {
           localStorage.removeItem("firebase_config_kojima");
@@ -199,7 +198,6 @@
       };
 
       useEffect(() => {
-        // ★修正箇所5：キーを変更
         const savedConfig = localStorage.getItem("firebase_config_kojima");
         if (savedConfig) {
           try {
@@ -232,7 +230,6 @@
           if (!apiKey || !projectId || !appIdVal) throw new Error("設定形式が正しくありません。");
           const config = { apiKey: apiKey[1], authDomain: projectId[1]+".firebaseapp.com", projectId: projectId[1], storageBucket: projectId[1]+".appspot.com", messagingSenderId: "", appId: appIdVal[1] };
           
-          // ★修正箇所6：キーを変更
           localStorage.setItem("firebase_config_kojima", JSON.stringify(config)); 
           setIsConfigured(true);
         } catch (e) { alert(e.message); }
@@ -359,21 +356,34 @@
       );
     }
 
+    // ★修正：連打防止＆ID事前確定機能の追加
     function Editor({ template, onSave, onCancel, categories }) {
-      const [formData, setFormData] = useState({ ...template }); const bodyRef = useRef(null);
+      const [formData, setFormData] = useState({ ...template, id: template.id || crypto.randomUUID() }); 
+      const bodyRef = useRef(null);
+      const [isSaving, setIsSaving] = useState(false);
+      
       const insert = ph => { const s = bodyRef.current.selectionStart; const e = bodyRef.current.selectionEnd; const b = formData.body || ''; setFormData({...formData, body: b.substring(0, s) + ph + b.substring(e)}); setTimeout(() => { bodyRef.current.selectionStart = bodyRef.current.selectionEnd = s + ph.length; bodyRef.current.focus(); }, 0); };
+      
       return (
         <div className="bg-white rounded-xl shadow-lg border overflow-hidden animate-fade-in-up">
           <div className="bg-slate-800 text-white px-6 py-4 flex justify-between items-center"><h3 className="font-bold">{template.id?'編集':'新規作成'}</h3><button onClick={onCancel}><X size={24} /></button></div>
-          <form onSubmit={e => { e.preventDefault(); onSave(formData); }} className="p-6 space-y-6">
+          
+          <form onSubmit={async e => { 
+            e.preventDefault(); 
+            if (isSaving) return; 
+            setIsSaving(true); 
+            await onSave(formData); 
+            setIsSaving(false); 
+          }} className="p-6 space-y-6">
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div><label className="block text-xs font-bold text-gray-400 mb-1">タイトル</label><input type="text" className="w-full p-2 border rounded font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required /></div>
-              <div><label className="block text-xs font-bold text-gray-400 mb-1">カテゴリ</label><select className="w-full p-2 border rounded bg-white font-bold" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>{categories.map(g => g.id!=='general'&&<optgroup key={g.id} label={g.label}>{g.items.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</optgroup>)}</select></div>
+              <div><label className="block text-xs font-bold text-gray-400 mb-1">タイトル</label><input type="text" className="w-full p-2 border rounded font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required disabled={isSaving} /></div>
+              <div><label className="block text-xs font-bold text-gray-400 mb-1">カテゴリ</label><select className="w-full p-2 border rounded bg-white font-bold" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} disabled={isSaving}>{categories.map(g => g.id!=='general'&&<optgroup key={g.id} label={g.label}>{g.items.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</optgroup>)}</select></div>
             </div>
-            <div><label className="block text-xs font-bold text-gray-400 mb-1">件名</label><input type="text" className="w-full p-2 border rounded font-bold" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} /></div>
-            <div><div className="flex flex-wrap gap-2 mb-2">{['［お客様名］', '［媒体名］', '［物件のエリア・種別］', '［自社名］', '［担当者名］', '［携帯電話番号］', '［事務所電話番号］', '［業者会社名］', '［業者担当者名］'].map(ph => (<button key={ph} type="button" onClick={() => insert(ph)} className={`text-[10px] bg-white border px-2 py-1 rounded shadow-sm font-bold ${ph.includes('業者') ? 'text-purple-600 border-purple-200' : 'text-blue-600 border-blue-200'}`}>{ph}</button>))}</div>
-              <textarea ref={bodyRef} className="w-full h-64 p-3 border rounded font-mono text-sm outline-none focus:ring-2 focus:ring-orange-500 custom-scrollbar" value={formData.body} onChange={e => setFormData({...formData, body: e.target.value})} required /></div>
-            <div className="flex justify-end gap-3"><button type="button" onClick={onCancel} className="px-5 py-2 text-gray-500 font-bold">中止</button><button type="submit" className="px-8 py-2 bg-orange-600 text-white rounded shadow-md font-bold">保存してクラウド同期</button></div>
+            <div><label className="block text-xs font-bold text-gray-400 mb-1">件名</label><input type="text" className="w-full p-2 border rounded font-bold" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} disabled={isSaving} /></div>
+            <div><div className="flex flex-wrap gap-2 mb-2">{['［お客様名］', '［媒体名］', '［物件のエリア・種別］', '［自社名］', '［担当者名］', '［携帯電話番号］', '［事務所電話番号］', '［業者会社名］', '［業者担当者名］'].map(ph => (<button key={ph} type="button" onClick={() => insert(ph)} className={`text-[10px] bg-white border px-2 py-1 rounded shadow-sm font-bold ${ph.includes('業者') ? 'text-purple-600 border-purple-200' : 'text-blue-600 border-blue-200'}`} disabled={isSaving}>{ph}</button>))}</div>
+              <textarea ref={bodyRef} className="w-full h-64 p-3 border rounded font-mono text-sm outline-none focus:ring-2 focus:ring-orange-500 custom-scrollbar" value={formData.body} onChange={e => setFormData({...formData, body: e.target.value})} required disabled={isSaving} /></div>
+            <div className="flex justify-end gap-3"><button type="button" onClick={onCancel} className="px-5 py-2 text-gray-500 font-bold" disabled={isSaving}>中止</button><button type="submit" className="px-8 py-2 bg-orange-600 text-white rounded shadow-md font-bold" disabled={isSaving}>{isSaving ? '保存中...' : '保存してクラウド同期'}</button></div>
           </form>
         </div>
       );
